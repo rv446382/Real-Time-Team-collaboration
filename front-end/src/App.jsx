@@ -1,3 +1,4 @@
+// src/App.jsx
 import React from "react";
 import { Routes, Route } from "react-router-dom";
 import Navbar from "./Components/Navbar";
@@ -14,13 +15,13 @@ import TeamDetails from "./Pages/TeamDetails";
 
 const App = () => {
   return (
-    <div>
+    <div className="min-h-screen bg-gray-100">
       <Navbar />
+
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
 
-        {/* Protected Dashboard */}
         <Route
           path="/dashboard/*"
           element={
@@ -40,6 +41,8 @@ const App = () => {
             <Route path="team/:teamId" element={<TeamDetails />} />
           </Route>
         </Route>
+
+        <Route path="*" element={<h1 className="text-center mt-20 text-2xl">404 | Page Not Found</h1>} />
       </Routes>
     </div>
   );
