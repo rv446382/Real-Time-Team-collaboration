@@ -20,12 +20,15 @@ const Login = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const url = currentState === "Login" ? "/auth/login" : "/auth/signup";
 
+    const url = currentState === "Login" ? "/auth/login" : "/auth/signup";
     try {
       const payload =
         currentState === "Login"
-          ? { email: userData.email, password: userData.password }
+          ? {
+              email: userData.email,
+              password: userData.password,
+            }
           : userData;
 
       const res = await api.post(url, payload);
@@ -34,16 +37,11 @@ const Login = () => {
         const user = res.data.user;
         const token = res.data.token;
 
-        if (!user || !token) {
-          toast.error("Login failed. No token received.");
-          return;
-        }
-
         dispatch(login({ user, token }));
-        toast.success("Login Successful!");
-        navigate("/dashboard"); // redirect after login
+        toast.success("Login Successfully");
+        navigate("/dashboard");
       } else {
-        toast.success("Registration Successful! Please login.");
+        toast.success("Registration Successful ! Please Login");
         setCurrentState("Login");
       }
 
@@ -54,7 +52,7 @@ const Login = () => {
         role: ACCOUNT_TYPE.MEMBER,
       });
     } catch (error) {
-      console.log(error);
+      console.log("error", error);
       toast.error(error.response?.data?.message || "Something went wrong");
     }
   };
@@ -72,12 +70,17 @@ const Login = () => {
                 placeholder="Name"
                 value={userData.name}
                 required
-                onChange={(e) => setUserData({ ...userData, name: e.target.value })}
+                onChange={(e) =>
+                  setUserData({ ...userData, name: e.target.value })
+                }
                 className="w-full p-2 border rounded mb-3"
               />
+
               <select
                 value={userData.role}
-                onChange={(e) => setUserData({ ...userData, role: e.target.value })}
+                onChange={(e) =>
+                  setUserData({ ...userData, role: e.target.value })
+                }
                 className="w-full p-2 border rounded mb-3"
               >
                 <option value={ACCOUNT_TYPE.MEMBER}>Member</option>
@@ -92,21 +95,27 @@ const Login = () => {
             placeholder="Email"
             value={userData.email}
             required
-            onChange={(e) => setUserData({ ...userData, email: e.target.value })}
+            onChange={(e) =>
+              setUserData({ ...userData, email: e.target.value })
+            }
             className="w-full p-2 border rounded mb-3"
           />
+
           <input
             type="password"
             placeholder="Password"
             value={userData.password}
             required
-            onChange={(e) => setUserData({ ...userData, password: e.target.value })}
+            onChange={(e) =>
+              setUserData({ ...userData, password: e.target.value })
+            }
             className="w-full p-2 border rounded mb-4"
           />
 
           <button
             type="submit"
-            className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition-colors"
+            className="w-full bg-blue-600 text-white py-2 rounded cursor-pointer hover:bg-blue-700 transition-colors"
+
           >
             {currentState === "Login" ? "Login" : "Sign Up"}
           </button>
