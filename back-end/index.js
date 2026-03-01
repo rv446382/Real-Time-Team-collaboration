@@ -21,7 +21,6 @@ const PORT = process.env.PORT || 4000;
 connect();
 
 
-// IMPORTANT FOR RENDER HTTPS 
 
 app.set("trust proxy", 1);  
 

@@ -1,99 +1,93 @@
 import jwt from "jsonwebtoken";
+import dotenv from "dotenv";
 import User from "../Models/User.js";
 
-// 🔐 AUTH MIDDLEWARE
+dotenv.config();
+
+// Middleware to authenticate the user using JWT token
 export const auth = async (req, res, next) => {
   try {
-    let token;
-
-    // ✅ Safe cookie access
-    if (req.cookies && req.cookies.token) {
-      token = req.cookies.token;
-    }
-    // ✅ Body token support
-    else if (req.body && req.body.token) {
-      token = req.body.token;
-    }
-    // ✅ Bearer token support
-    else if (req.headers.authorization) {
-      token = req.headers.authorization.replace("Bearer ", "");
-    }
+    const token =
+      req.cookies.token ||
+      req.body.token ||
+      req.header("Authorization")?.replace("Bearer ", "");
 
     if (!token) {
       return res.status(401).json({
         success: false,
-        message: "Authentication token missing",
+        message: "Authentication token is missing",
       });
     }
 
-    // ✅ Verify JWT
+    // verify the token
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
-    // ✅ Fetch fresh user from DB (safer than trusting decoded only)
-    const user = await User.findById(decoded.id).select("-password");
-
-    if (!user) {
-      return res.status(401).json({
-        success: false,
-        message: "User not found",
-      });
-    }
-
-    req.user = user;
+    req.user = decoded;
 
     next();
   } catch (error) {
-    console.error("Auth Middleware Error:", error);
-
-    return res.status(401).json({
+    console.log("error", error);
+    return res.status(500).json({
       success: false,
-      message: "Invalid or expired token",
+      message: "Error while validating the token",
     });
   }
 };
 
-
-
-// 👤 ROLE CHECKS
-
-export const isMember = (req, res, next) => {
-  if (!req.user || req.user.role !== "MEMBER") {
-    return res.status(403).json({
+// Middleware to allow only Member
+export const isMember = async (req, res, next) => {
+  try {
+    if (!req.user || req.user.role !== "MEMBER") {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied: Member only",
+      });
+    }
+    next();
+  } catch (error) {
+    return res.status(500).json({
       success: false,
-      message: "Access denied: Member only",
+      message: "Error verifying Member access",
     });
   }
-  next();
 };
 
-export const isManager = (req, res, next) => {
-  if (!req.user || req.user.role !== "MANAGER") {
-    return res.status(403).json({
+// Middleware to allow only MANAGER
+export const isManager = async (req, res, next) => {
+  try {
+    if (req.user.role !== "MANAGER") {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied: Manager only",
+      });
+    }
+    next();
+  } catch (error) {
+    return res.status(500).json({
       success: false,
-      message: "Access denied: Manager only",
+      message: "Error verifying Manager access",
     });
   }
-  next();
 };
 
-export const isAdmin = (req, res, next) => {
-  if (!req.user || req.user.role !== "ADMIN") {
-    return res.status(403).json({
+// Middleware to allow only Admins
+export const isAdmin = async (req, res, next) => {
+  try {
+    if (req.user.role !== "ADMIN") {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied: Admins only",
+      });
+    }
+    next();
+  } catch (error) {
+    return res.status(500).json({
       success: false,
-      message: "Access denied: Admin only",
+      message: "Error verifying admin access",
     });
   }
-  next();
 };
 
 export const isAdminOrManager = (req, res, next) => {
-  if (!req.user) {
-    return res.status(403).json({
-      success: false,
-      message: "Access denied",
-    });
-  }
-
   if (req.user.role === "ADMIN" || req.user.role === "MANAGER") {
     return next();
   }

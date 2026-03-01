@@ -65,52 +65,46 @@ export const login = async (req, res) => {
     if (!user) {
       return res.status(401).json({
         success: false,
-        message: "User not registered",
+        message: "User is not registered please signup first",
       });
     }
 
-    const isMatch = await bcrypt.compare(password, user.password);
+    if (await bcrypt.compare(password, user.password)) {
+      const token = jwt.sign(
+        {
+          email: user.email,
+          id: user._id,
+          role: user.role,
+          teamId: user.teamId,
+        },
+        process.env.JWT_SECRET,
+        { expiresIn: "24h" }
+      );
 
-    if (!isMatch) {
+      user.token = token;
+
+      const options = {
+        expires: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
+        httpOnly: true,
+      };
+
+      res.cookie("token", token, options).status(200).json({
+        success: true,
+        token,
+        user,
+        message: "Logged in Successfully",
+      });
+    } else {
       return res.status(401).json({
         success: false,
-        message: "Password incorrect",
+        message: "Password Is incorrect",
       });
     }
-
-    const token = jwt.sign(
-      {
-        id: user._id,
-        role: user.role,
-        teamId: user.teamId,
-      },
-      process.env.JWT_SECRET,
-      { expiresIn: "7d" }
-    );
-
-    res.cookie("token", token, {
-      httpOnly: true,
-      secure: true,        
-      sameSite: "None",    
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
-
-    return res.status(200).json({
-      success: true,
-      message: "Login successful",
-      user: {
-        _id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        teamId: user.teamId,
-      },
-    });
   } catch (error) {
-    console.error("Login Error:", error);
+    console.log(error);
     return res.status(500).json({
       success: false,
-      message: "Login failed",
+      message: "Login Failure, please try again",
     });
   }
 };
