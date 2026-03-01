@@ -18,22 +18,30 @@ const app = express();
 const server = http.createServer(app);
 const PORT = process.env.PORT || 4000;
 
-// Database connect
 connect();
 
-// Middleware
+const allowedOrigins = [
+  "http://localhost:5173",
+  "https://real-time-team-collaboration.vercel.app",
+];
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
 app.use(
   cors({
-    origin: ["http://localhost:5173"],
+    origin: function (origin, callback) {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
     credentials: true,
   })
 );
 
-// Routes
 app.use("/api/auth", userRouter);
 app.use("/api/project", projectRouter);
 app.use("/api/task", taskRouter);
@@ -44,37 +52,27 @@ app.get("/", (req, res) => {
   res.send("API is running...");
 });
 
-// Socket.IO setup
 const io = new Server(server, {
   cors: {
-    origin: ["http://localhost:5173"],
+    origin: allowedOrigins,
     methods: ["GET", "POST"],
     credentials: true,
   },
 });
 
-// Socket.IO connection
 io.on("connection", (socket) => {
   console.log("User connected:", socket.id);
 
   socket.on("setup", (userId) => {
     socket.join(userId);
-    console.log("User joined private room:", userId);
-  });
-
-  socket.on("joinChat", (roomId) => {
-    socket.join(roomId);
-    console.log(`User joined room: ${roomId}`);
   });
 
   socket.on("joinProject", (projectId) => {
     socket.join(projectId);
-    console.log(`Socket joined project room: ${projectId}`);
   });
 
   socket.on("joinTeam", (teamId) => {
     socket.join(teamId);
-    console.log(`Socket joined team room: ${teamId}`);
   });
 
   socket.on(
@@ -117,9 +115,11 @@ io.on("connection", (socket) => {
     }
   );
 
-  socket.on("disconnect", () => console.log("User disconnected:"));
+  socket.on("disconnect", () => {
+    console.log("User disconnected:", socket.id);
+  });
 });
 
 server.listen(PORT, () => {
-  console.log(`Server is running on PORT ${PORT}!!`);
+  console.log(`Server is running on PORT ${PORT}`);
 });
