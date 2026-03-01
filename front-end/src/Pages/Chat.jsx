@@ -1,10 +1,15 @@
 import { useEffect, useState, useRef } from "react";
 import { useSelector } from "react-redux";
-import io from "socket.io-client";
+import { io } from "socket.io-client";
 import axios from "axios";
 
-// Using a single socket instance
-const socket = io("http://localhost:4000", { withCredentials: true });
+// ✅ Backend URL from env
+const baseURL = import.meta.env.VITE_API_URL;
+
+// ✅ Socket using live backend
+const socket = io(baseURL, {
+  withCredentials: true,
+});
 
 const Chat = ({ projectId, teamId, receiverId }) => {
   const { user } = useSelector((state) => state.auth);
@@ -21,22 +26,24 @@ const Chat = ({ projectId, teamId, receiverId }) => {
   useEffect(() => {
     if (!user?._id) return;
 
-    // 1. Setup & Room Entry
+    // Setup socket
     socket.emit("setup", user._id);
 
     if (projectId) socket.emit("joinProject", projectId);
     else if (teamId) socket.emit("joinTeam", teamId);
 
-    // 2. Fetch Chat History
+    // Fetch Chat History
     const fetchMessages = async () => {
       try {
-        let url = `http://localhost:4000/api/chat/messages?`;
+        let url = `${baseURL}/api/chat/messages?`;
+
         if (projectId) url += `projectId=${projectId}`;
         else if (teamId) url += `teamId=${teamId}`;
         else if (receiverId)
           url += `receiverId=${receiverId}&senderId=${user._id}`;
 
         const res = await axios.get(url, { withCredentials: true });
+
         if (res.data.success) {
           setMessages(res.data.messages);
         }
@@ -44,11 +51,11 @@ const Chat = ({ projectId, teamId, receiverId }) => {
         console.error("Failed to fetch messages:", err);
       }
     };
+
     fetchMessages();
 
+    // Real-time listener
     socket.on("receiveMessage", (receivedData) => {
-      console.log("Socket message received:", receivedData);
-
       const isRelevant =
         (projectId && receivedData.projectId === projectId) ||
         (teamId && receivedData.teamId === teamId) ||
@@ -85,21 +92,18 @@ const Chat = ({ projectId, teamId, receiverId }) => {
 
   return (
     <div className="flex flex-col h-[500px] border rounded-lg shadow-lg bg-white overflow-hidden">
-      {/* Header */}
       <div className="p-3 border-b bg-blue-600 text-white flex justify-between items-center">
         <span className="font-bold">
-          {projectId ? "Project Chat" : teamId ? "Team Chat" : "Direct Message"}
+          {projectId
+            ? "Project Chat"
+            : teamId
+              ? "Team Chat"
+              : "Direct Message"}
         </span>
-        <div className="flex items-center text-[10px] bg-blue-500 px-2 py-1 rounded-full">
-          <div className="w-1.5 h-1.5 bg-green-400 rounded-full mr-1 animate-pulse"></div>
-          CONNECTED
-        </div>
       </div>
 
-      {/* Messages Area */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
         {messages.map((msg, idx) => {
-          // Handle both 'content' from DB and 'message' from Socket
           const text = msg.content || msg.message;
           const senderObj = msg.sender || {};
           const isMe = (senderObj._id || senderObj) === user._id;
@@ -110,11 +114,10 @@ const Chat = ({ projectId, teamId, receiverId }) => {
               className={`flex ${isMe ? "justify-end" : "justify-start"}`}
             >
               <div
-                className={`max-w-[75%] px-4 py-2 rounded-2xl shadow-sm ${
-                  isMe
+                className={`max-w-[75%] px-4 py-2 rounded-2xl shadow-sm ${isMe
                     ? "bg-blue-600 text-white rounded-tr-none"
                     : "bg-white text-gray-800 border rounded-tl-none"
-                }`}
+                  }`}
               >
                 {!isMe && (
                   <div className="text-[10px] font-black uppercase mb-1 text-blue-500">
@@ -122,11 +125,11 @@ const Chat = ({ projectId, teamId, receiverId }) => {
                   </div>
                 )}
                 <div className="text-sm">{text}</div>
-                <div className={`text-[9px] mt-1 opacity-60 text-right`}>
-                  {new Date(msg.timestamp).toLocaleTimeString([], {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}
+                <div className="text-[9px] mt-1 opacity-60 text-right">
+                  {new Date(msg.timestamp || Date.now()).toLocaleTimeString(
+                    [],
+                    { hour: "2-digit", minute: "2-digit" }
+                  )}
                 </div>
               </div>
             </div>
@@ -135,23 +138,20 @@ const Chat = ({ projectId, teamId, receiverId }) => {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Input Area */}
       <div className="p-3 bg-white border-t flex gap-2">
         <input
           type="text"
           placeholder="Write a message..."
-          className="flex-1 border border-gray-200 rounded-full px-4 py-2 focus:outline-none focus:border-blue-500 transition-all"
+          className="flex-1 border rounded-full px-4 py-2"
           value={newMessage}
           onChange={(e) => setNewMessage(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && sendMessage()}
         />
         <button
-          className="bg-blue-600 text-white p-2 rounded-full w-10 h-10 flex items-center justify-center hover:bg-blue-700 active:scale-95 transition-all shadow-md"
+          className="bg-blue-600 text-white px-4 py-2 rounded-full"
           onClick={sendMessage}
         >
-          <svg viewBox="0 0 24 24" className="w-5 h-5 fill-current">
-            <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
-          </svg>
+          Send
         </button>
       </div>
     </div>
