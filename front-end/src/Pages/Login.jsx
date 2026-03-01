@@ -22,26 +22,29 @@ const Login = () => {
     e.preventDefault();
 
     const url = currentState === "Login" ? "/auth/login" : "/auth/signup";
+
     try {
       const payload =
         currentState === "Login"
           ? {
-              email: userData.email,
-              password: userData.password,
-            }
+            email: userData.email,
+            password: userData.password,
+          }
           : userData;
 
       const res = await api.post(url, payload);
 
       if (currentState === "Login") {
-        const user = res.data.user;
-        const token = res.data.token;
+        const { user, token } = res.data;
 
+        // 🔥 Store in Redux
         dispatch(login({ user, token }));
+
         toast.success("Login Successfully");
+
         navigate("/dashboard");
       } else {
-        toast.success("Registration Successful ! Please Login");
+        toast.success("Registration Successful! Please Login");
         setCurrentState("Login");
       }
 
@@ -52,7 +55,7 @@ const Login = () => {
         role: ACCOUNT_TYPE.MEMBER,
       });
     } catch (error) {
-      console.log("error", error);
+      console.log(error);
       toast.error(error.response?.data?.message || "Something went wrong");
     }
   };
@@ -60,7 +63,9 @@ const Login = () => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4">
       <div className="w-full max-w-md bg-white shadow-lg rounded-lg p-6">
-        <h1 className="text-2xl font-bold mb-4 text-center">{currentState}</h1>
+        <h1 className="text-2xl font-bold mb-4 text-center">
+          {currentState}
+        </h1>
 
         <form onSubmit={handleSubmit}>
           {currentState === "Sign Up" && (
@@ -114,8 +119,7 @@ const Login = () => {
 
           <button
             type="submit"
-            className="w-full bg-blue-600 text-white py-2 rounded cursor-pointer hover:bg-blue-700 transition-colors"
-
+            className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition"
           >
             {currentState === "Login" ? "Login" : "Sign Up"}
           </button>
